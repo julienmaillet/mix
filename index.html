@@ -5,97 +5,109 @@
 <title>Circle song #1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body {
-    background: linear-gradient(135deg,#fff,#ddd);
-    color: #222; /* texte sombre sur fond clair */
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 20px;
-  }
-  h1 {
-    color: #0a3d62; /* bleu foncé */
-    text-shadow: 0 0 5px #0a3d62, 0 0 10px #74b9ff;
-  }
-  #status {
-    margin: 15px 0;
-    font-size: 1.1em;
-    color: #555;
-  }
-  .circle-container {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 40px auto;
-  }
-  .box {
-    position: absolute;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background: #74b9ff; /* couleur inactive bleu clair */
-    color: #fff;
-    font-weight: bold;
-    transition: transform 0.1s, background 0.2s;
-    user-select: none;
-  }
-  .box:hover { transform: scale(1.05); }
-  .box.active {
-    background: #0984e3; /* couleur active bleu foncé */
-    color: #fff;
-    animation: pulse 0.5s infinite;
-  }
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
-  @media (max-width: 500px) {
-    .circle-container { width: 220px; height: 220px; }
-    .box { width: 60px; height: 60px; font-size: 0.9em; }
-  }
+body {
+  background: linear-gradient(135deg,#fff,#eee);
+  color: #222;
+  font-family: Arial,sans-serif;
+  text-align: center;
+  margin:0;
+  padding:20px;
+}
+h1 {
+  color: #0a3d62;
+  text-shadow: 0 0 5px #0a3d62,0 0 10px #74b9ff;
+}
+#status { margin:15px 0; font-size:1.1em; color:#555; }
+
+#characters {
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  margin-top:50px;
+  flex-wrap:wrap;
+}
+.character {
+  width:60px;
+  height:150px;
+  position: relative;
+  cursor:pointer;
+}
+.character .head {
+  width:40px; height:40px; border-radius:50%;
+  background: var(--color); margin:0 auto;
+}
+.character .body {
+  width:15px; height:60px; background:#555; margin:5px auto;
+}
+.character .arm, .character .leg {
+  width:10px; height:40px; background:#555;
+  position:absolute; transform-origin:top center;
+}
+.character .arm.left{left:-15px; top:50px;}
+.character .arm.right{right:-15px; top:50px;}
+.character .leg.left{left:5px; top:100px;}
+.character .leg.right{right:5px; top:100px;}
+
+.character.dancing .body{animation:sway 0.5s infinite alternate;}
+.character.dancing .arm{animation:swing 0.5s infinite alternate;}
+.character.dancing .leg{animation:step 0.5s infinite alternate;}
+
+@keyframes sway{0%{transform:rotate(-5deg);}100%{transform:rotate(5deg);}}
+@keyframes swing{0%{transform:rotate(10deg);}100%{transform:rotate(-10deg);}}
+@keyframes step{0%{transform:rotate(-10deg);}100%{transform:rotate(10deg);}}
+
+@media(max-width:500px){
+  .character{width:50px;height:120px;}
+  .character .head{width:30px;height:30px;}
+  .character .body{width:10px;height:50px;}
+  .character .arm,.character .leg{width:8px;height:30px;}
+}
 </style>
 </head>
 <body>
 <h1>Circle song #1</h1>
 <div id="status">Chargement des pistes…</div>
-<div class="circle-container" id="grid"></div>
+
+<div id="characters">
+  <div class="character" data-voice="0" style="--color:#f5a623">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+  <div class="character" data-voice="1" style="--color:#6c5ce7">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+  <div class="character" data-voice="2" style="--color:#00b894">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+  <div class="character" data-voice="3" style="--color:#fd79a8">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+  <div class="character" data-voice="4" style="--color:#e17055">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+  <div class="character" data-voice="5" style="--color:#00cec9">
+    <div class="head"></div><div class="body"></div>
+    <div class="arm left"></div><div class="arm right"></div>
+    <div class="leg left"></div><div class="leg right"></div>
+  </div>
+</div>
 
 <script>
 const trackFiles = ["voix1.wav","voix2.wav","voix3.wav","voix4.wav","voix5.wav","voix6.wav"];
-let audioCtx, buffers=[], sources=[], gains=[], isPlaying=false;
-
-const grid = document.getElementById("grid");
+let audioCtx, buffers=[], sources=[], gains=[], analysers=[], isPlaying=false;
+const characters = document.querySelectorAll(".character");
 const statusEl = document.getElementById("status");
+let activeVoices = Array(trackFiles.length).fill(false);
 
-// Création des cases Voix 1 à 6
-trackFiles.forEach((f,i)=>{
-  const box=document.createElement("div");
-  box.className="box";
-  box.textContent="Voix "+(i+1);
-  box.dataset.idx=i;
-  grid.appendChild(box);
-});
-
-// Position circulaire
-function positionBoxes(){
-  const boxes = document.querySelectorAll(".box");
-  const radius = 120;
-  boxes.forEach((box,i)=>{
-    const angle = (i/boxes.length)*2*Math.PI - Math.PI/2; // commencer en haut
-    const x = radius * Math.cos(angle);
-    const y = radius * Math.sin(angle);
-    box.style.left = `calc(50% + ${x}px - 40px)`; // 40px = la moitié de la largeur
-    box.style.top  = `calc(50% + ${y}px - 40px)`;
-  });
-}
-positionBoxes();
-
-// Précharger fichiers WAV
 async function loadAll(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   for(let i=0;i<trackFiles.length;i++){
@@ -103,50 +115,53 @@ async function loadAll(){
     const ab = await resp.arrayBuffer();
     buffers[i] = await audioCtx.decodeAudioData(ab);
   }
-  statusEl.textContent = "Clique sur une voix pour lancer le playback.";
+  statusEl.textContent = "Clique sur un personnage pour lancer le playback.";
 }
 loadAll();
 
-// Démarrer toutes les pistes synchronisées
 function startAll(){
   const startTime = audioCtx.currentTime + 0.05;
-  sources = [];
-  gains = [];
+  sources=[]; gains=[]; analysers=[];
   buffers.forEach((buf,i)=>{
     const src = audioCtx.createBufferSource();
     src.buffer = buf;
     src.loop = true;
     const gainNode = audioCtx.createGain();
     gainNode.gain.value = 0;
-    src.connect(gainNode).connect(audioCtx.destination);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(gainNode).connect(analyser).connect(audioCtx.destination);
     src.start(startTime);
-    sources[i]=src;
-    gains[i]=gainNode;
+    sources[i]=src; gains[i]=gainNode; analysers[i]=analyser;
   });
   isPlaying=true;
-  statusEl.textContent = "Lecture en cours : active/désactive les voix.";
+  statusEl.textContent = "Lecture en cours : clique sur un personnage pour activer/désactiver sa voix.";
+  animate();
 }
 
-// Gestion des clics
-grid.addEventListener("click", async (e)=>{
-  if(!e.target.classList.contains("box")) return;
-  const idx = e.target.dataset.idx;
+function animate(){
+  analysers.forEach((analyser,i)=>{
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const avg = data.reduce((a,b)=>a+b,0)/data.length;
+    if(activeVoices[i] && avg>10){
+      characters[i].classList.add("dancing");
+    } else {
+      characters[i].classList.remove("dancing");
+    }
+  });
+  requestAnimationFrame(animate);
+}
 
-  // Démarrage au premier clic
-  if(!isPlaying){
-    if(audioCtx.state==="suspended") await audioCtx.resume();
-    startAll();
-  }
-
-  // Toggle voix
-  const gainNode = gains[idx];
-  if(e.target.classList.contains("active")){
-    e.target.classList.remove("active");
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-  } else {
-    e.target.classList.add("active");
-    gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-  }
+characters.forEach((char,i)=>{
+  char.addEventListener("click", async ()=>{
+    if(!isPlaying){
+      if(audioCtx.state==="suspended") await audioCtx.resume();
+      startAll();
+    }
+    activeVoices[i] = !activeVoices[i];
+    gains[i].gain.setValueAtTime(activeVoices[i]?1:0,audioCtx.currentTime);
+  });
 });
 </script>
 </body>
