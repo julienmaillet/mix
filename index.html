@@ -1,158 +1,92 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Circle song #1</title>
-  <style>
-    body {
-      background: #222;
-      color: #f5a623;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      margin-bottom: 20px;
-    }
-    #status {
-      margin: 15px 0;
-      font-size: 1.1em;
-      color: #fff;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 120px);
-      gap: 15px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .box {
-      background: #555;
-      padding: 30px;
-      border-radius: 12px;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.2s, transform 0.1s;
-      font-size: 1.2em;
-      font-weight: bold;
-      color: white;
-    }
-    .box.active {
-      background: #f5a623;
-      color: #222;
-      transform: scale(1.05);
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: #f5a623;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      font-weight: bold;
-      color: #222;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Circle song #1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { background:#222; color:#f5a623; font-family:Arial,sans-serif; text-align:center; margin:0; padding:20px; }
+  h1 { margin-bottom:20px; }
+  #status { margin:15px 0; font-size:1.1em; color:#fff; }
+  .grid { display:grid; grid-template-columns:repeat(3,120px); gap:15px; justify-content:center; margin-top:20px; }
+  .box { background:#555; padding:30px; border-radius:12px; cursor:pointer; user-select:none; transition:background 0.2s, transform 0.1s; font-size:1.2em; font-weight:bold; color:white; }
+  .box.active { background:#f5a623; color:#222; transform:scale(1.05); }
+</style>
 </head>
 <body>
-  <h1>Circle song #1</h1>
-  <div id="status">Chargement des pistes...</div>
-  <button id="startBtn" disabled>Démarrer</button>
+<h1>Circle song #1</h1>
+<div id="status">Chargement des pistes…</div>
+<div class="grid" id="grid"></div>
 
-  <div class="grid" id="grid"></div>
+<script>
+const trackFiles = ["voix1.wav","voix2.wav","voix3.wav","voix4.wav","voix5.wav","voix6.wav"];
+let audioCtx, buffers=[], sources=[], gains=[], isPlaying=false;
 
-  <script>
-    const trackFiles = [
-      "voix1.wav","voix2.wav","voix3.wav",
-      "voix4.wav","voix5.wav","voix6.wav"
-    ];
+const grid = document.getElementById("grid");
+const statusEl = document.getElementById("status");
 
-    let audioCtx;
-    let buffers = [];
-    let sources = [];
-    let gains = [];
-    let isPlaying = false;
+// Création des cases Voix 1 à 6
+trackFiles.forEach((f,i)=>{
+  const box=document.createElement("div");
+  box.className="box";
+  box.textContent="Voix "+(i+1);
+  box.dataset.idx=i;
+  grid.appendChild(box);
+});
 
-    const grid = document.getElementById("grid");
-    const statusEl = document.getElementById("status");
-    const startBtn = document.getElementById("startBtn");
+// Précharger les fichiers WAV
+async function loadAll(){
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  for(let i=0;i<trackFiles.length;i++){
+    const resp = await fetch(trackFiles[i]);
+    const ab = await resp.arrayBuffer();
+    buffers[i] = await audioCtx.decodeAudioData(ab);
+  }
+  statusEl.textContent = "Clique sur une voix pour lancer le playback.";
+}
+loadAll();
 
-    // Créer les cases (Voix 1, Voix 2…)
-    trackFiles.forEach((f, i) => {
-      const box = document.createElement("div");
-      box.className = "box";
-      box.textContent = "Voix " + (i+1);
-      box.dataset.idx = i;
-      grid.appendChild(box);
-    });
+// Fonction pour démarrer toutes les pistes synchronisées
+function startAll(){
+  const startTime = audioCtx.currentTime + 0.05;
+  sources = [];
+  gains = [];
+  buffers.forEach((buf,i)=>{
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0; // muet au départ
+    src.connect(gainNode).connect(audioCtx.destination);
+    src.start(startTime);
+    sources[i]=src;
+    gains[i]=gainNode;
+  });
+  isPlaying=true;
+  statusEl.textContent = "Lecture en cours : active/désactive les voix.";
+}
 
-    // Précharger les fichiers WAV
-    async function loadAll() {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      for (let i=0; i<trackFiles.length; i++) {
-        const resp = await fetch(trackFiles[i]);
-        const arrayBuf = await resp.arrayBuffer();
-        const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
-        buffers[i] = audioBuf;
-      }
-      statusEl.textContent = "Prêt à jouer !";
-      startBtn.disabled = false;
-    }
+// Gestion des clics sur les cases
+grid.addEventListener("click", async (e)=>{
+  if(!e.target.classList.contains("box")) return;
+  const idx = e.target.dataset.idx;
 
-    loadAll();
+  // Démarrage au premier clic
+  if(!isPlaying){
+    if(audioCtx.state === "suspended") await audioCtx.resume();
+    startAll();
+  }
 
-    function startAll() {
-      if (isPlaying) return;
-      isPlaying = true;
-
-      const startTime = audioCtx.currentTime + 0.1; // petit décalage de sécu
-
-      buffers.forEach((buf, i) => {
-        const source = audioCtx.createBufferSource();
-        source.buffer = buf;
-        source.loop = true;
-
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0; // muet au départ
-
-        source.connect(gainNode).connect(audioCtx.destination);
-        source.start(startTime);
-
-        sources[i] = source;
-        gains[i] = gainNode;
-      });
-
-      statusEl.textContent = "Clique sur une voix pour l’activer ou la couper.";
-      startBtn.disabled = true;
-    }
-
-    startBtn.addEventListener("click", () => {
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-      startAll();
-    });
-
-    // Toggle des voix
-    grid.addEventListener("click", (e) => {
-      if (!e.target.classList.contains("box")) return;
-      const idx = e.target.dataset.idx;
-      if (!isPlaying) return;
-
-      if (e.target.classList.contains("active")) {
-        e.target.classList.remove("active");
-        gains[idx].gain.value = 0;
-      } else {
-        e.target.classList.add("active");
-        gains[idx].gain.value = 1;
-      }
-    });
-  </script>
+  // Toggle voix
+  const gainNode = gains[idx];
+  if(e.target.classList.contains("active")){
+    e.target.classList.remove("active");
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  } else {
+    e.target.classList.add("active");
+    gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+  }
+});
+</script>
 </body>
 </html>
