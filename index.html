@@ -5,18 +5,64 @@
 <title>Circle song #1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { background:#222; color:#f5a623; font-family:Arial,sans-serif; text-align:center; margin:0; padding:20px; }
-  h1 { margin-bottom:20px; }
-  #status { margin:15px 0; font-size:1.1em; color:#fff; }
-  .grid { display:grid; grid-template-columns:repeat(3,120px); gap:15px; justify-content:center; margin-top:20px; }
-  .box { background:#555; padding:30px; border-radius:12px; cursor:pointer; user-select:none; transition:background 0.2s, transform 0.1s; font-size:1.2em; font-weight:bold; color:white; }
-  .box.active { background:#f5a623; color:#222; transform:scale(1.05); }
+  body {
+    background: linear-gradient(135deg,#222,#111);
+    color: #f5a623;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    text-shadow: 0 0 10px #f5a623, 0 0 20px #f5a623;
+  }
+  #status {
+    margin: 15px 0;
+    font-size: 1.1em;
+    color: #fff;
+  }
+  .circle-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 40px auto;
+  }
+  .box {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #555;
+    color: white;
+    font-weight: bold;
+    transition: transform 0.1s, background 0.2s;
+    user-select: none;
+  }
+  .box:hover { transform: scale(1.1); }
+  .box.active {
+    background: #f5a623;
+    color: #222;
+    animation: pulse 0.5s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @media (max-width: 500px) {
+    .circle-container { width: 220px; height: 220px; }
+    .box { width: 60px; height: 60px; font-size: 0.9em; }
+  }
 </style>
 </head>
 <body>
 <h1>Circle song #1</h1>
 <div id="status">Chargement des pistes…</div>
-<div class="grid" id="grid"></div>
+<div class="circle-container" id="grid"></div>
 
 <script>
 const trackFiles = ["voix1.wav","voix2.wav","voix3.wav","voix4.wav","voix5.wav","voix6.wav"];
@@ -34,7 +80,21 @@ trackFiles.forEach((f,i)=>{
   grid.appendChild(box);
 });
 
-// Précharger les fichiers WAV
+// Position circulaire
+function positionBoxes(){
+  const boxes = document.querySelectorAll(".box");
+  const radius = 120;
+  boxes.forEach((box,i)=>{
+    const angle = (i/boxes.length)*2*Math.PI - Math.PI/2; // commencer en haut
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+    box.style.left = `calc(50% + ${x}px - 40px)`; // 40px = la moitié de la largeur
+    box.style.top  = `calc(50% + ${y}px - 40px)`;
+  });
+}
+positionBoxes();
+
+// Précharger fichiers WAV
 async function loadAll(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   for(let i=0;i<trackFiles.length;i++){
@@ -46,7 +106,7 @@ async function loadAll(){
 }
 loadAll();
 
-// Fonction pour démarrer toutes les pistes synchronisées
+// Démarrer toutes les pistes synchronisées
 function startAll(){
   const startTime = audioCtx.currentTime + 0.05;
   sources = [];
@@ -56,7 +116,7 @@ function startAll(){
     src.buffer = buf;
     src.loop = true;
     const gainNode = audioCtx.createGain();
-    gainNode.gain.value = 0; // muet au départ
+    gainNode.gain.value = 0;
     src.connect(gainNode).connect(audioCtx.destination);
     src.start(startTime);
     sources[i]=src;
@@ -66,14 +126,14 @@ function startAll(){
   statusEl.textContent = "Lecture en cours : active/désactive les voix.";
 }
 
-// Gestion des clics sur les cases
+// Gestion des clics
 grid.addEventListener("click", async (e)=>{
   if(!e.target.classList.contains("box")) return;
   const idx = e.target.dataset.idx;
 
   // Démarrage au premier clic
   if(!isPlaying){
-    if(audioCtx.state === "suspended") await audioCtx.resume();
+    if(audioCtx.state==="suspended") await audioCtx.resume();
     startAll();
   }
 
